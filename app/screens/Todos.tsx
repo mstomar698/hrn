@@ -24,9 +24,8 @@ import {
   query,
 } from 'firebase/firestore';
 import { FIRESTORE_AUTH, FIRESTORE_DB } from '../../firebaseConfig';
-import { signOut } from 'firebase/auth';
-
-export interface Todo {
+import { User, signOut } from 'firebase/auth';
+interface TodoItem {
   email: string;
   title: string;
   text: string;
@@ -34,14 +33,32 @@ export interface Todo {
   id: string;
 }
 
-const Todos = ({ navigation }: any) => {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [todo, setTodo] = useState<any>('');
-  const [todoContent, setTodoContent] = useState<any>('');
+interface TodosProps {
+  navigation: any;
+}
+
+const Todos: React.FC<TodosProps> = ({ navigation }) => {
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [todo, setTodo] = useState<string>('');
+  const [todoContent, setTodoContent] = useState<string>('');
 
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showErrorMessage, setShowErrorMessage] = useState<boolean>(false);
-  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] =
+    useState<boolean>(false);
+
+  const user: User | null = FIRESTORE_AUTH.currentUser;
+
+  useEffect(() => {
+    if (!user) {
+      console.error('User not authenticated.');
+      navigation.navigate('Auth');
+    }
+  }, [user, navigation]);
+
+  const checkIfTitleExists = (newTitle: string) => {
+    return todos.some((existingTodo) => existingTodo.title === newTitle);
+  };
 
   const handleLogout = () => {
     setShowLogoutConfirmation(true);
@@ -61,16 +78,6 @@ const Todos = ({ navigation }: any) => {
     setShowLogoutConfirmation(false);
   };
 
-  const user = FIRESTORE_AUTH.currentUser;
-  if (!user) {
-    console.error('User not authenticated.');
-    navigation.navigate('Auth');
-  }
-
-  const checkIfTitleExists = (newTitle: string) => {
-    return todos.some((existingTodo) => existingTodo.title === newTitle);
-  };
-
   const closeErrorMessage = () => {
     setShowErrorMessage(false);
     setErrorMessage('');
@@ -88,7 +95,7 @@ const Todos = ({ navigation }: any) => {
       return;
     }
 
-    const userEmail = user.email;
+    const userEmail = user!.email;
     try {
       const docRef = await addDoc(collection(FIRESTORE_DB, 'todos'), {
         title: newTitle,
@@ -105,6 +112,7 @@ const Todos = ({ navigation }: any) => {
 
   const renderTodo = ({ item }: any) => {
     const todoItemRef = doc(FIRESTORE_DB, `todos/${item.id}`);
+
     const toggleDone = async () => {
       try {
         await updateDoc(todoItemRef, {
@@ -114,6 +122,7 @@ const Todos = ({ navigation }: any) => {
         console.error('Error toggling todo status:', error);
       }
     };
+
     const deleteTodo = async () => {
       try {
         await deleteDoc(todoItemRef);
@@ -121,6 +130,7 @@ const Todos = ({ navigation }: any) => {
         console.error('Error deleting todo:', error);
       }
     };
+
     return (
       <View style={styles.todoContainer}>
         <TouchableOpacity onPress={() => toggleDone()}>
@@ -162,23 +172,27 @@ const Todos = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    const todoRef = collection(FIRESTORE_DB, 'todos');
+    if (!user) {
+      return;
+    }
 
+    const todoRef = collection(FIRESTORE_DB, 'todos');
     const q = query(todoRef, where('email', '==', user.email));
+
     const subscriber = onSnapshot(q, {
       next: (snapshot) => {
-        const todos: Todo[] = [];
+        const todos: TodoItem[] = [];
         snapshot.docs.forEach((doc) => {
           todos.push({
             id: doc.id,
             ...doc.data(),
-          } as Todo);
+          } as TodoItem);
         });
         setTodos(todos);
       },
     });
     return () => subscriber();
-  }, []);
+  }, [user]);
 
   return (
     <ScrollView style={styles.mainContainer}>
@@ -216,7 +230,7 @@ const Todos = ({ navigation }: any) => {
           <FlatList
             data={todos}
             renderItem={renderTodo}
-            keyExtractor={(todo: Todo) => todo.id}
+            keyExtractor={(todo: TodoItem) => todo.id}
             contentContainerStyle={styles.flatListContainer}
           />
         )}

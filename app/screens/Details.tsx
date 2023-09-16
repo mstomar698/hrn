@@ -10,11 +10,21 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import {
+  deleteDoc,
+  doc,
+  updateDoc,
+  Firestore,
+} from 'firebase/firestore';
 import { FIRESTORE_AUTH, FIRESTORE_DB } from '../../firebaseConfig';
 import { signOut } from 'firebase/auth';
 
-const Details = ({ route, navigation }: any) => {
+interface DetailsProps {
+  route: any;
+  navigation: any;
+}
+
+const Details: React.FC<DetailsProps> = ({ route, navigation }) => {
   const { title: initialTitle, text: initialText, wholeItem } = route.params;
   const [title, setTitle] = useState(initialTitle);
   const [text, setText] = useState(initialText);
@@ -54,6 +64,7 @@ const Details = ({ route, navigation }: any) => {
       console.error('Error toggling task status:', error);
     }
   };
+  
   const deleteTask = async () => {
     try {
       await deleteDoc(todoItemRef);

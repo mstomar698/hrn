@@ -10,10 +10,15 @@ import {
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  Auth as FirebaseAuth,
 } from 'firebase/auth';
 import { FIRESTORE_AUTH } from '../../firebaseConfig';
 
-const Auth = ({ navigation }: any) => {
+interface AuthProps {
+  navigation: any; 
+}
+
+const Auth: React.FC<AuthProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -30,7 +35,7 @@ const Auth = ({ navigation }: any) => {
           email,
           password
         );
-        navigation.navigate('Home');  
+        navigation.navigate('Home');
       } catch (signInError) {
         const newAccount = await createUserWithEmailAndPassword(
           FIRESTORE_AUTH,
@@ -48,8 +53,6 @@ const Auth = ({ navigation }: any) => {
       console.error('Error signing up:', error);
     }
   };
-
-  const handleLoginWithGoogle = () => {};
 
   return (
     <View style={styles.container}>
@@ -69,13 +72,13 @@ const Auth = ({ navigation }: any) => {
           value={password}
         />
         <TouchableOpacity style={styles.button} onPress={handleLoginOrSignup}>
-          <Text style={styles.buttonText}>Login / Signup</Text>
+          <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.googleButton}
-          onPress={handleLoginWithGoogle}
+          onPress={handleLoginOrSignup}
         >
-          <Text style={styles.buttonText}>Login using Google</Text>
+          <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
       </View>
     </View>

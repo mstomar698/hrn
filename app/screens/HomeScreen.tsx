@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,23 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { signOut } from 'firebase/auth';
+import { signOut, User } from 'firebase/auth';
 import { FIRESTORE_AUTH } from '../../firebaseConfig';
 
-const HomeScreen = ({ navigation }: any) => {
-  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+interface HomeScreenProps {
+  navigation: any;
+}
 
-  const user = FIRESTORE_AUTH.currentUser;
-  if (!user) {
-    console.error('User not authenticated.');
-    navigation.navigate('Auth');
-  }
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+  const user: User | null = FIRESTORE_AUTH.currentUser;
+
+  useEffect(() => {
+    if (!user) {
+      console.error('User not authenticated.');
+      navigation.navigate('Auth');
+    }
+  }, [user, navigation]);
 
   const handleLogout = () => {
     setShowLogoutConfirmation(true);
@@ -27,7 +33,6 @@ const HomeScreen = ({ navigation }: any) => {
   const confirmLogout = async () => {
     try {
       await signOut(FIRESTORE_AUTH);
-
       navigation.navigate('Auth');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -48,7 +53,7 @@ const HomeScreen = ({ navigation }: any) => {
       </View>
       <View style={styles.intro}>
         <Text style={styles.introText}>Welcome to the Todo App!</Text>
-        <Text style={styles.introEmail}>Email: {user.email}</Text>
+        {user && <Text style={styles.introEmail}>Email: {user.email}</Text>}
       </View>
       <TouchableOpacity
         style={styles.todoButton}
