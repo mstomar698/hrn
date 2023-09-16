@@ -27,3 +27,19 @@ yarn web # for web
 yarn dev # tunnel
 yarn start # lan
 ```
+
+### ✨ Features
+
+* User authentication with Firebase.
+* Create, edit, delete, and mark tasks as done.
+* Real-time updates with Firestore.
+* Offline support.
+
+### 🌐 App Screenshots
+
+<!-- image from local -->
+![image](./assets/auth.png)
+![image](./assets/home.png)
+![image](./assets/notes.png)
+![image](./assets/todo_update.png)
+
