@@ -7,6 +7,9 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
+  Modal,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Entypo, Feather } from '@expo/vector-icons';
@@ -17,9 +20,11 @@ import {
   doc,
   onSnapshot,
   updateDoc,
-  where,query
+  where,
+  query,
 } from 'firebase/firestore';
 import { FIRESTORE_AUTH, FIRESTORE_DB } from '../../firebaseConfig';
+import { signOut } from 'firebase/auth';
 
 export interface Todo {
   email: string;
@@ -36,9 +41,27 @@ const Todos = ({ navigation }: any) => {
 
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showErrorMessage, setShowErrorMessage] = useState<boolean>(false);
+  const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false);
+
+  const handleLogout = () => {
+    setShowLogoutConfirmation(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      await signOut(FIRESTORE_AUTH);
+
+      navigation.navigate('Auth');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutConfirmation(false);
+  };
 
   const user = FIRESTORE_AUTH.currentUser;
-  // console.log(user);
   if (!user) {
     console.error('User not authenticated.');
     navigation.navigate('Auth');
@@ -141,8 +164,8 @@ const Todos = ({ navigation }: any) => {
   useEffect(() => {
     const todoRef = collection(FIRESTORE_DB, 'todos');
 
-    const q = query(todoRef, where('email', '==', user.email)); 
-    const subscriber = onSnapshot(q , {
+    const q = query(todoRef, where('email', '==', user.email));
+    const subscriber = onSnapshot(q, {
       next: (snapshot) => {
         const todos: Todo[] = [];
         snapshot.docs.forEach((doc) => {
@@ -158,57 +181,114 @@ const Todos = ({ navigation }: any) => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Add new todo"
-        onChangeText={(text: string) => setTodo(text)}
-        value={todo}
-      />
-      <TextInput
-        style={styles.inputDescription}
-        placeholder="Describe Task"
-        onChangeText={(text: string) => setTodoContent(text)}
-        value={todoContent}
-        multiline={true}
-        autoCorrect={true}
-        spellCheck={true}
-      />
-      <Button
-        onPress={() => addToDo()}
-        title="Add todo"
-        disabled={todo === ''}
-      />
-      {todos.length > 0 && (
-        <FlatList
-          data={todos}
-          renderItem={renderTodo}
-          keyExtractor={(todo: Todo) => todo.id}
-          contentContainerStyle={styles.flatListContainer}
+    <ScrollView style={styles.mainContainer}>
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+          <Text style={styles.navTitle}>Todo App</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Ionicons name="exit-outline" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.container}>
+        <TextInput
+          style={styles.input}
+          placeholder="Add new todo"
+          onChangeText={(text: string) => setTodo(text)}
+          value={todo}
         />
-      )}
-      {showErrorMessage && (
-        <View style={styles.errorMessageContainer}>
-          <View style={styles.errorMessageContent}>
-            <Text style={styles.errorMessageText}>{errorMessage}</Text>
-            <TouchableOpacity onPress={closeErrorMessage}>
-              <Ionicons name="md-close-circle" size={24} color="red" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+        <TextInput
+          style={styles.inputDescription}
+          placeholder="Describe Task"
+          onChangeText={(text: string) => setTodoContent(text)}
+          value={todoContent}
+          multiline={true}
+          autoCorrect={true}
+          spellCheck={true}
+        />
+        <Button
+          onPress={() => addToDo()}
+          title="Add todo"
+          disabled={todo === ''}
+        />
 
-      {/* <Button onPress={() => navigation.navigate('Details')} title="Details" /> */}
-    </View>
+        {todos.length > 0 && (
+          <FlatList
+            data={todos}
+            renderItem={renderTodo}
+            keyExtractor={(todo: Todo) => todo.id}
+            contentContainerStyle={styles.flatListContainer}
+          />
+        )}
+        {showErrorMessage && (
+          <View style={styles.errorMessageContainer}>
+            <View style={styles.errorMessageContent}>
+              <Text style={styles.errorMessageText}>{errorMessage}</Text>
+              <TouchableOpacity onPress={closeErrorMessage}>
+                <Ionicons name="md-close-circle" size={24} color="red" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+      {showLogoutConfirmation && (
+        <Modal
+          visible={showLogoutConfirmation}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={cancelLogout}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text>Are you sure you want to log out?</Text>
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  onPress={confirmLogout}
+                  style={styles.confirmButton}
+                >
+                  <Text>Confirm</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={cancelLogout}
+                  style={styles.cancelButton}
+                >
+                  <Text>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </ScrollView>
   );
 };
 
 export default Todos;
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flexGrow: 1,
+  },
+  navBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: 'grey',
+    padding: 10,
+  },
+  navTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    borderRadius: 25,
+    padding: 10,
+  },
   container: {
-    marginHorizontal: 20,
-    overflow: 'scroll',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   form: {
     flexDirection: 'row',
@@ -258,7 +338,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   flatListContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    flexGrow: 1, // Allow the FlatList to grow and take up available space
   },
   todoStatus: {
     backgroundColor: 'lightgray',
@@ -285,5 +366,36 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 18,
     color: 'red',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: Dimensions.get('window').width - 40,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  confirmButton: {
+    backgroundColor: 'blue',
+    borderRadius: 5,
+    padding: 10,
+    width: '45%',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: 'gray',
+    borderRadius: 5,
+    padding: 10,
+    width: '45%',
+    alignItems: 'center',
   },
 });
